@@ -1601,6 +1601,83 @@ def parray2beam(parray, step=1e-7):
         beam.filePath = parray.filePath + '.beam'
     return (beam)
 
+def cov_matrix_from_twiss(ex, ey, sigma_tau, sigma_p, **twiss):
+    """Generate a covariance matrix from Twiss parameters, dispersions and
+    emittances (horizontal) and standard deviations (longitudinal).  No
+    correlations between tau and the other coordinates are present in this
+    parametrisation.
+
+    :param ex: Geometric emittance in x-plane
+    :param ey: Geometric emittance in y-plane
+    :param sigma_tau: Standard deviation of tau (c*t)
+    :param sigma_p: Standard deviation of cannonical coordinate p=dE/(c*p0).
+    :param twiss: Horizontal Twiss parameters.  Required: alpha_x, beta_x,
+        alpha_y, beta_y.  Optional (set to 0 if missing): dispersions dx,
+        dpx, dy, dpy.
+    :return: 6x6 correlation matrix.
+
+
+    """
+    alpha_x = twiss["alpha_x"]
+    beta_x = twiss["beta_x"]
+    alpha_y = twiss["alpha_y"]
+    beta_y = twiss["beta_y"]
+    dx = twiss.get("dx", 0)
+    dpx = twiss.get("dpx", 0)
+    dy = twiss.get("dy", 0)
+    dpy = twiss.get("dpy", 0)
+    # X block, y block, xy upper block, xy lower block
+    xb = _horizontal_2x2_elements(ex, alpha_x, beta_x, dx, dpx, sigma_p)
+    yb = _horizontal_2x2_elements(ey, alpha_y, beta_y, dy, dpy, sigma_p)
+    xyu = _horizontal_coupling_elements(dx, dy, dpx, dpy, sigma_p)
+    xyl = np.array(
+        _horizontal_coupling_elements(dx, dy, dpx, dpy, sigma_p)
+    ).T
+    sp2 = sigma_p**2
+    return np.array([[xb[0,0],  xb[0,1], xyu[0,0], xyu[0,1], 0., dx*sp2],
+                     [xb[1,0],  xb[1,1], xyu[1,0], xyu[1,1], 0., dpx*sp2],
+                     [xyl[0,0], xyl[0,1], yb[0,0],  yb[0,1], 0., dy*sp2],
+                     [xyl[1,0], xyl[1,1], yb[1,0],  yb[1,1], 0., dpy*sp2],
+                     [0.,            0,         0,  0, sigma_tau**2, 0.0],
+                     [dx*sp2, dpx*sp2, dy*sp2, dpy*sp2, 0, sp2]])
+
+def cov_matrix_to_parray(mean, cov, energy, charge, nparticles):
+    """Generate a ParticleArray instance using a covariance matrix.
+
+    :param mean: 1-D list of 6 means of the particle distributions.
+    :param cov: 6x6 covariance matrix.
+    :param energy: Beam energy in GeV.
+    :param charge: Total beam charge in Coulombs.
+    :param nparticles: Number of particles to populate the ParticleArray
+        instance with.
+    :return: ParticleArray with given charge and energy populated with
+        nparticles and the particle distribution having the correct means
+        and covariances.
+    :rtype: ParticleArray
+
+    """
+
+    p_array = ParticleArray()
+    p_array.E = energy
+    p_array.rparticles = np.random.multivariate_normal(mean, cov, nparticles).T
+    p_array.q_array = np.ones(nparticles) * charge / nparticles
+    return p_array
+
+def _horizontal_2x2_elements(emit, alpha, beta, disp, disp_p, sigma_p):
+    """2x2 correlation matrix between x/py  and y/py"""
+    gamma = (1 + alpha**2) / beta
+    offdiag = -emit * alpha + disp * disp_p * sigma_p**2
+    return np.array([[emit * beta + (disp*sigma_p)**2, offdiag],
+                     [offdiag, emit * gamma + (disp_p*sigma_p)**2]])
+
+def _horizontal_coupling_elements(disp_x, disp_y, disp_px, disp_py, sigma_p):
+    """generate cov matrix elements for correlations between horz. and
+    vertical."""
+    sigp2 = sigma_p**2
+    return np.array([[disp_x * disp_y * sigp2, disp_x * disp_py * sigp2],
+                     [disp_px * disp_y * sigp2, disp_px * disp_py * sigp2]])
+
+
 
 def generate_parray(sigma_x=1e-4, sigma_px=2e-5, sigma_y=None, sigma_py=None,
                     sigma_tau=1e-3, sigma_p=1e-4, chirp=0.01, charge=5e-9, nparticles=200000, energy=0.13,
