@@ -880,32 +880,39 @@ def show_e_beam(p_array, nparts_in_slice=5000, smooth_param=0.05, nbins_x=200, n
         p_array_copy.tau()[:] *= -1
     slice_params = global_slice_analysis(p_array_copy, nparts_in_slice, smooth_param, filter_base, filter_iter)
 
-    fig = plt.figure(nfig, figsize=figsize)
+    # fig = plt.figure(nfig, figsize=figsize)
+
+    fig, ax = plt.subplots(nrows=3, ncols=2, sharex=True, num=nfig, figsize=figsize)
+    ((ax_c, ax_sp), (ax_ps, ax_xs), (ax_em, ax_ys)) = ax
+    fig.tight_layout()
+
     if title is not None:
         fig.suptitle(title)
-    ax_sp = plt.subplot(325)
-    plt.title("Energy spread")
-    plt.plot(slice_params.s * tau_factor, slice_params.se * 1e-3, "b")
-    # plt.legend()
-    plt.xlabel(tau_label)
-    plt.ylabel("$\sigma_E$ [keV]")
-    plt.grid(grid)
 
-    ax_em = plt.subplot(323, sharex=ax_sp)
-    plt.title("Emittances")
+    # ax_sp = plt.subplot(325)
+    ax_sp.set_title("Energy spread")
+    ax_sp.plot(slice_params.s * tau_factor, slice_params.se * 1e-3, "b")
+    # ax_sp.legend()
+    ax_sp.set_xlabel(tau_label)
+    ax_sp.set_ylabel("$\sigma_E$ [keV]")
+    ax_sp.grid(grid)
+
+    # ax_em = plt.subplot(323, sharex=ax_sp)
+    ax_em.set_title("Emittances")
     emitxn_mm_mrad = np.round(slice_params.emitxn * 1e6, 2)
     emityn_mm_mrad = np.round(slice_params.emityn * 1e6, 2)
-    plt.plot(slice_params.s * tau_factor, slice_params.ex, "r",
+    ax_em.plot(slice_params.s * tau_factor, slice_params.ex, "r",
              label=r"$\varepsilon_x^{proj} = $" + str(emitxn_mm_mrad))
-    plt.plot(slice_params.s * tau_factor, slice_params.ey, "b",
+    ax_em.plot(slice_params.s * tau_factor, slice_params.ey, "b",
              label=r"$\varepsilon_y^{proj} = $" + str(emityn_mm_mrad))
-    plt.legend()
-    plt.setp(ax_em.get_xticklabels(), visible=False)
-    plt.ylabel(r"$\varepsilon_{x,y}$ [$\mu m \cdot rad$]")
-    plt.grid(grid)
+    ax_em.legend()
+    [label.set_visible(False) for label in ax_em.get_xticklabels()]
+    # ax_em.setp(ax_em.get_xticklabels(), visible=False)
+    ax_em.set_ylabel(r"$\varepsilon_{x,y}$ [$\mu m \cdot rad$]")
+    ax_em.grid(grid)
 
     ax_c = plt.subplot(321, sharex=ax_sp)
-    plt.title("Current")
+    ax_c.set_title("Current")
 
     if inverse_tau:
         arrow = r"$\Longrightarrow$"
@@ -916,45 +923,46 @@ def show_e_beam(p_array, nparts_in_slice=5000, smooth_param=0.05, nbins_x=200, n
         label = arrow + " head"
         location = "upper left"
 
-    plt.plot(slice_params.s * tau_factor, slice_params.I, "b")
+    ax_c.plot(slice_params.s * tau_factor, slice_params.I, "b")
     # label = r"$I_{max}=$" + str(np.round(np.max(slice_params.I), 1))
     if headtail:
         leg = ax_c.legend([label], handlelength=0, handletextpad=0, fancybox=True, loc=location)
         for item in leg.legendHandles:
             item.set_visible(False)
-    plt.setp(ax_c.get_xticklabels(), visible=False)
-    plt.ylabel("I [A]")
-    plt.grid(grid)
+    [label.set_visible(False) for label in ax_c.get_xticklabels()]
+    # ax_c.setp(ax_c.get_xticklabels(), visible=False)
+    ax_c.set_ylabel("I [A]")
+    ax_c.grid(grid)
 
-    ax_ys = plt.subplot(326, sharex=ax_sp)
+    # ax_ys = plt.subplot(326, sharex=ax_sp)
 
     show_density(p_array_copy.tau() * tau_factor, p_array_copy.y() * 1e3, ax=ax_ys, nbins_x=nbins_x, nbins_y=nbins_y,
                  interpolation=interpolation, xlabel=tau_label, ylabel='y [mm]', nfig=50,
                  title="Side view", figsize=None, grid=grid)
     if show_moments:
-        plt.plot(slice_params.s * tau_factor, slice_params.my * 1e3, "k", lw=2)
-        plt.plot(slice_params.s * tau_factor, (slice_params.my + slice_params.sig_y) * 1e3, "w", lw=1)
-        plt.plot(slice_params.s * tau_factor, (slice_params.my - slice_params.sig_y) * 1e3, "w", lw=1)
+        ax_ys.plot(slice_params.s * tau_factor, slice_params.my * 1e3, "k", lw=2)
+        ax_ys.plot(slice_params.s * tau_factor, (slice_params.my + slice_params.sig_y) * 1e3, "w", lw=1)
+        ax_ys.plot(slice_params.s * tau_factor, (slice_params.my - slice_params.sig_y) * 1e3, "w", lw=1)
 
-    ax_xs = plt.subplot(324, sharex=ax_sp)
+    # ax_xs = plt.subplot(324, sharex=ax_sp)
 
     show_density(p_array_copy.tau() * tau_factor, p_array_copy.x() * 1e3, ax=ax_xs, nbins_x=nbins_x, nbins_y=nbins_y,
                  interpolation=interpolation, ylabel='x [mm]',
                  title="Top view", grid=grid, show_xtick_label=False)
     if show_moments:
-        plt.plot(slice_params.s * tau_factor, slice_params.mx * 1e3, "k", lw=2)
-        plt.plot(slice_params.s * tau_factor, (slice_params.mx + slice_params.sig_x) * 1e3, "w", lw=1)
-        plt.plot(slice_params.s * tau_factor, (slice_params.mx - slice_params.sig_x) * 1e3, "w", lw=1)
+        ax_xs.plot(slice_params.s * tau_factor, slice_params.mx * 1e3, "k", lw=2)
+        ax_xs.plot(slice_params.s * tau_factor, (slice_params.mx + slice_params.sig_x) * 1e3, "w", lw=1)
+        ax_xs.plot(slice_params.s * tau_factor, (slice_params.mx - slice_params.sig_x) * 1e3, "w", lw=1)
 
-    ax_ps = plt.subplot(322, sharex=ax_sp)
+    # ax_ps = plt.subplot(322, sharex=ax_sp)
 
     show_density(p_array_copy.tau() * tau_factor, p_array_copy.p() * 1e2, ax=ax_ps, nbins_x=nbins_x, nbins_y=nbins_y,
                  interpolation=interpolation, ylabel='$\delta_E$ [%]',
                  title="Longitudinal phase space", grid=grid, show_xtick_label=False)
 
     if filename is not None:
-        plt.savefig(filename)
-
+        fig.savefig(filename)
+        plt.clf()
 
 def show_phase_space(p_array, nparts_in_slice=5000, smooth_param=0.05, nbins_x=200, nbins_y=200,
                      interpolation="bilinear", inverse_tau=False,
@@ -1065,75 +1073,79 @@ def compare_beams(p_array_1, p_array_2, nparts_in_slice1=5000, nparts_in_slice2=
     fig = plt.figure(nfig, figsize=figsize)
     if title != None:
         fig.suptitle(title)
-    ax_sp = plt.subplot(325)
-    plt.title("Energy Spread")
-    plt.plot(slice_params1.s * 1e6, slice_params1.se * 1e-3, "r", label=r"$\sigma_E$: " + legend_beam1)
-    plt.plot(slice_params2.s * 1e6, slice_params2.se * 1e-3, "b", label=r"$\sigma_E$: " + legend_beam2)
-    plt.legend()
-    plt.xlabel(r"s, $\mu m$")
-    plt.ylabel("dE, keV")
-    plt.grid(True)
+    # ax_sp = plt.subplot(325)
+    ax_sp.set_title("Energy Spread")
+    ax_sp.plot(slice_params1.s * 1e6, slice_params1.se * 1e-3, "r", label=r"$\sigma_E$: " + legend_beam1)
+    ax_sp.plot(slice_params2.s * 1e6, slice_params2.se * 1e-3, "b", label=r"$\sigma_E$: " + legend_beam2)
+    ax_sp.legend()
+    ax_sp.set_xlabel(r"s, $\mu m$")
+    ax_sp.set_ylabel("dE, keV")
+    ax_sp.grid(True)
 
-    ax_em = plt.subplot(323, sharex=ax_sp)
-    plt.title("Hor. Emittances")
+    # ax_em = plt.subplot(323, sharex=ax_sp)
+    ax_em.set_title("Hor. Emittances")
     emitxn1_mm_mrad = np.round(slice_params1.emitxn * 1e6, 2)
     emitxn2_mm_mrad = np.round(slice_params2.emitxn * 1e6, 2)
-    plt.plot(slice_params1.s * 1e6, slice_params1.ex, "r",
+    ax_em.plot(slice_params1.s * 1e6, slice_params1.ex, "r",
              label=r"$\varepsilon_x = $" + str(emitxn1_mm_mrad) + r" $mm\cdot mrad$: " + legend_beam1)
-    plt.plot(slice_params2.s * 1e6, slice_params2.ex, "b",
+    ax_em.plot(slice_params2.s * 1e6, slice_params2.ex, "b",
              label=r"$\varepsilon_x = $" + str(emitxn2_mm_mrad) + r" $mm\cdot mrad$: " + legend_beam2)
-    plt.legend()
-    plt.setp(ax_em.get_xticklabels(), visible=False)
-    plt.ylabel(r"$\varepsilon_x$, $mm\cdot mrad$")
-    plt.grid(True)
+    ax_em.legend()
+    [label.set_visible(False) for label in ax_em.get_xticklabels()]
+    # ax_em.setp(ax_em.get_xticklabels(), visible=False)
+    ax_em.set_ylabel(r"$\varepsilon_x$, $mm\cdot mrad$")
+    ax_em.grid(True)
 
-    ax_c = plt.subplot(321, sharex=ax_sp)
-    plt.title("Current")
+    # ax_c = plt.subplot(321, sharex=ax_sp)
+    ax_c.set_title("Current")
     I1max = np.round(np.max(slice_params1.I), 0)
     I2max = np.round(np.max(slice_params2.I), 0)
-    plt.plot(slice_params1.s * 1e6, slice_params1.I, "r", label=r"$I_{max}=$" + str(I1max) + " A " + legend_beam1)
-    plt.plot(slice_params2.s * 1e6, slice_params2.I, "b", label=r"$I_{max}=$" + str(I2max) + " A " + legend_beam2)
-    plt.legend()
-    plt.setp(ax_c.get_xticklabels(), visible=False)
-    plt.ylabel("I, A")
-    plt.grid(True)
+    ax_c.plot(slice_params1.s * 1e6, slice_params1.I, "r", label=r"$I_{max}=$" + str(I1max) + " A " + legend_beam1)
+    ax_c.plot(slice_params2.s * 1e6, slice_params2.I, "b", label=r"$I_{max}=$" + str(I2max) + " A " + legend_beam2)
+    ax_c.legend()
+    [label.set_visible(False) for label in ax_c.get_xticklabels()]
+    # ax_c.setp(ax_c.get_xticklabels(), visible=False)
+    ax_c.set_ylabel("I, A")
+    ax_c.grid(True)
 
     # my_rainbow = deepcopy(plt.get_cmap('rainbow'))
     # my_rainbow.set_under('w')
 
     ax_mp = plt.subplot(326)
-    plt.title("Energy Distribution")
+    ax_mp.set_title("Energy Distribution")
 
-    plt.plot(slice_params1.s * 1e6, slice_params1.mp * 1e2, "r", label=r"$\Delta E/E$: " + legend_beam1)
-    plt.plot(slice_params2.s * 1e6, slice_params2.mp * 1e2, "b", label=r"$\Delta E/E$: " + legend_beam2)
-    plt.legend()
-    plt.xlabel(r"s, $\mu m$")
-    plt.ylabel("dE/E, %")
-    plt.grid(True)
+    ax_mp.plot(slice_params1.s * 1e6, slice_params1.mp * 1e2, "r", label=r"$\Delta E/E$: " + legend_beam1)
+    ax_mp.plot(slice_params2.s * 1e6, slice_params2.mp * 1e2, "b", label=r"$\Delta E/E$: " + legend_beam2)
+    ax_mp.legend()
+    ax_mp.set_xlabel(r"s, $\mu m$")
+    ax_mp.set_ylabel("dE/E, %")
+    ax_mp.grid(True)
 
-    ax_em = plt.subplot(324, sharex=ax_mp)
-    plt.title("Ver. Emittances")
+    # ax_em = plt.subplot(324, sharex=ax_mp)
+    ax_em.set_title("Ver. Emittances")
     emityn1_mm_mrad = np.round(slice_params1.emityn * 1e6, 2)
     emityn2_mm_mrad = np.round(slice_params2.emityn * 1e6, 2)
-    plt.plot(slice_params1.s * 1e6, slice_params1.ey, "r",
+    ax_em.plot(slice_params1.s * 1e6, slice_params1.ey, "r",
              label=r"$\varepsilon_y = $" + str(emityn1_mm_mrad) + r" $mm\cdot mrad$: " + legend_beam1)
-    plt.plot(slice_params2.s * 1e6, slice_params2.ey, "b",
+    ax_em.plot(slice_params2.s * 1e6, slice_params2.ey, "b",
              label=r"$\varepsilon_y = $" + str(emityn2_mm_mrad) + r" $mm\cdot mrad$: " + legend_beam2)
-    plt.legend()
-    plt.setp(ax_em.get_xticklabels(), visible=False)
-    plt.ylabel(r"$\varepsilon_y$, $mm\cdot mrad$")
-    plt.grid(True)
+    ax_em.legend()
+    [label.set_visible(False) for label in ax_em.get_xticklabels()]
+    # ax_em.setp(ax_em.get_xticklabels(), visible=False)
+    ax_em.set_ylabel(r"$\varepsilon_y$, $mm\cdot mrad$")
+    ax_em.grid(True)
 
-    ax_e = plt.subplot(322, sharex=ax_mp)
-    plt.title("Slice Position")
-    plt.plot(slice_params1.s * 1e6, slice_params1.mx * 1e6, "r", label=r"$x_{slice}$: " + legend_beam1)
-    plt.plot(slice_params2.s * 1e6, slice_params2.mx * 1e6, "b", label=r"$x_{slice}$: " + legend_beam2)
-    plt.plot(slice_params1.s * 1e6, slice_params1.my * 1e6, "r--", label=r"$y_{slice}$: " + legend_beam1)
-    plt.plot(slice_params2.s * 1e6, slice_params2.my * 1e6, "b--", label=r"$y_{slice}$: " + legend_beam2)
-    plt.legend()
-    plt.setp(ax_e.get_xticklabels(), visible=False)
-    plt.ylabel(r"$X/Y_{slice}$, $\mu m$")
-    plt.grid(True)
+    # ax_e = plt.subplot(322, sharex=ax_mp)
+    axe_.set_title("Slice Position")
+    axe_.plot(slice_params1.s * 1e6, slice_params1.mx * 1e6, "r", label=r"$x_{slice}$: " + legend_beam1)
+    axe_.plot(slice_params2.s * 1e6, slice_params2.mx * 1e6, "b", label=r"$x_{slice}$: " + legend_beam2)
+    axe_.plot(slice_params1.s * 1e6, slice_params1.my * 1e6, "r--", label=r"$y_{slice}$: " + legend_beam1)
+    axe_.plot(slice_params2.s * 1e6, slice_params2.my * 1e6, "b--", label=r"$y_{slice}$: " + legend_beam2)
+    axe_.legend()
+    [label.set_visible(False) for label in ax_e.get_xticklabels()]
+    # axe_.setp(ax_e.get_xticklabels(), visible=False)
+    axe_.set_ylabel(r"$X/Y_{slice}$, $\mu m$")
+    axe_.grid(True)
 
 
 def compare_beams_reduced(p_array_1, p_array_2, nparts_in_slice=5000, smoth_param=0.05,
