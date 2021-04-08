@@ -400,7 +400,9 @@ def tracking_step(lat, particle_list, dz, navi):
     return
 
 
-def track(lattice, p_array, navi, print_progress=True, calc_tws=True, bounds=None):
+def track(lattice, p_array, navi, print_progress=True, calc_tws=True,
+          bounds=None,
+          optics_func=None):
     """
     tracking through the lattice
 
@@ -413,7 +415,10 @@ def track(lattice, p_array, navi, print_progress=True, calc_tws=True, bounds=Non
     :return: twiss_list, ParticleArray. In case calc_tws=False, twiss_list is list of empty Twiss classes.
     """
 
-    tw0 = get_envelope(p_array, bounds=bounds) if calc_tws else Twiss()
+    if optics_func is None:
+        optics_func = get_envelope
+
+    tw0 = optics_func(p_array, bounds=bounds) if calc_tws else Twiss()
     tws_track = [tw0]
     L = 0.
 
@@ -432,7 +437,7 @@ def track(lattice, p_array, navi, print_progress=True, calc_tws=True, bounds=Non
         if p_array.n == 0:
             _logger.debug(" Tracking stop: p_array.n = 0")
             return tws_track, p_array
-        tw = get_envelope(p_array, bounds=bounds) if calc_tws else Twiss()
+        tw = optics_func(p_array, bounds=bounds) if calc_tws else Twiss()
         L += dz
         tw.s += L
         tws_track.append(tw)
