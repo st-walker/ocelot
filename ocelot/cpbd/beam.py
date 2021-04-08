@@ -1678,6 +1678,90 @@ def _horizontal_coupling_elements(disp_x, disp_y, disp_px, disp_py, sigma_p):
                      [disp_px * disp_y * sigp2, disp_px * disp_py * sigp2]])
 
 
+def optics_from_moments(mean, cov_matrix, energy=None):
+    """Calculate the beam optics from the mean and covariance matrix.
+
+    :param mean: 1x6 array of means
+    :param cov_matrix: 6x6 matrix of covariances between the particle vectors.
+    :param energy: Energy to additionally calculate the normalised
+        emittances from the geometric emittances, optional.
+
+    """
+    r = Twiss()
+    r.x, r.xp, r.y, r.yp, r.tau, r.p = mean
+    r.Dx, r.Dxp, r.Dy, r.Dyp = _dispersions_from_cov_matrix(cov_matrix)
+    sigp2 = cov_matrix[5, 5]
+    r.emit_x, r.alpha_x, r.beta_x, r.gamma_x = _dispersionless_twiss_parameters(
+        cov_matrix[0:2, 0:2],
+        r.Dx,
+        r.Dxp,
+        sigp2
+    )
+    r.emit_y, r.alpha_y, r.beta_y, r.gamma_y = _dispersionless_twiss_parameters(
+        cov_matrix[2:4, 2:4],
+        r.Dy,
+        r.Dyp,
+        sigp2
+    )
+
+    if energy is not None:
+        r.E = energy
+        r.emit_xn = r.emit_x * energy / m_e_GeV
+        r.emit_yn = r.emit_y * energy / m_e_GeV
+
+    return r
+
+# def optics_from_beam(parray):
+
+
+def _dispersionless_twiss_parameters(submatrix, dx, dpx, sigp2):
+    """Calculate the emittance and twiss parameters from the 2x2 covariance
+    matrix accounting for the increase in the spot size due to the
+    dispersion.
+
+    """
+    x = submatrix[0, 0] - dx**2 * sigp2
+    px = submatrix[1, 1] - dpx**2 * sigp2
+    xpx = submatrix[0, 1] - dx*dpx * sigp2
+    emittance = np.sqrt(x * px - xpx * xpx)
+    beta = x / emittance
+    alpha = -xpx / emittance
+    gamma = px / emittance
+
+
+    return emittance, alpha, beta, gamma
+
+def _dispersions_from_cov_matrix(cov_matrix):
+    """Calculate the dispersions from the provided 6x6 covariance matrix."""
+    sigp2 = cov_matrix[5, 5]
+    if sigp2 == 0:
+        return 0, 0, 0, 0
+    dx = cov_matrix[0, 5] / sigp2
+    dpx = cov_matrix[1, 5] / sigp2
+    dy = cov_matrix[2, 5] / sigp2
+    dpy = cov_matrix[3, 5] / sigp2
+    return dx, dpx, dy, dpy
+
+def moments_from_parray(parray, dispersions=None):
+    """Calculate the central moments and covariances from the given
+    ParticleArray.  Correct for dispersion by providing either a Twiss
+    instance, a list of four dispersion [dx, dxp, dy, dyp].
+    """
+    rpart = parray.rparticles
+    try:
+        dx = dispersions.Dx
+        dxp = dispersions.Dxp
+        dy = dispersions.Dy
+        dyp = dispersions.Dyp
+    except AttributeError:
+        try:
+            dx, dxp, dy, dyp = dispersions
+        except TypeError:
+            dx, dxp, dy, dyp = 0, 0, 0, 0
+    # TODO: ACTUALLY CORRECT FOR DISPERSION AND DO IT CLEANLY SOMEWHERE.
+
+    return np.mean(rpart, axis=1, dtype=np.float64), np.cov(rpart)
+
 
 def generate_parray(sigma_x=1e-4, sigma_px=2e-5, sigma_y=None, sigma_py=None,
                     sigma_tau=1e-3, sigma_p=1e-4, chirp=0.01, charge=5e-9, nparticles=200000, energy=0.13,
