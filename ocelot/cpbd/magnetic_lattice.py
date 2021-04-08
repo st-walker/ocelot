@@ -101,8 +101,29 @@ def merger(lat, remaining_types=[], remaining_elems=[], init_energy=0.):
     return new_lat
 
 
-flatten = lambda *n: (e for a in n
-                      for e in (flatten(*a) if isinstance(a, (tuple, list)) else (a,)))
+def flatten(iterable):
+    """Flatten arbitrarily nested iterable.
+    Special case for strings that avoids infinite recursion.
+
+    """
+    def _flatten(iterable):
+        for item in iterable:
+            try:
+                iter(item)
+            except TypeError:
+                yield item
+            else:
+                if isinstance(item, str): # Special case
+                    yield item
+                else:
+                    yield from _flatten(item)
+
+    try:
+        yield from _flatten(iterable)
+    except RecursionError:
+        raise RecursionError("Maximum recusion reached.  Possibly trying"
+                             " to flatten an infinitely nested iterable.")
+
 
 
 class MagneticLattice:
