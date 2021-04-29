@@ -920,6 +920,8 @@ def get_envelope(p_array, tws_i=Twiss(), bounds=None):
     tws.emit_x = np.sqrt(tws.xx * tws.pxpx - tws.xpx ** 2)
     tws.emit_y = np.sqrt(tws.yy * tws.pypy - tws.ypy ** 2)
 
+    tws.emit_xn = tws.emit_x * tws.E / m_e_GeV
+    tws.emit_yn = tws.emit_y * tws.E / m_e_GeV
 
     xx = tws.xx
     xpx = tws.xpx
