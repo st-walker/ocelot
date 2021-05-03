@@ -810,7 +810,7 @@ def recalculate_ref_particle(p_array):
     return p_array
 
 
-def get_envelope(p_array, tws_i=Twiss(), bounds=None):
+def get_envelope(p_array, tws_i=None, bounds=None):
     """
     Function to calculate twiss parameters form the ParticleArray
 
@@ -819,6 +819,9 @@ def get_envelope(p_array, tws_i=Twiss(), bounds=None):
     :param bounds: optional, [left_bound, right_bound] - bounds in units of std(p_array.tau())
     :return: Twiss()
     """
+
+    if tws_i is None:
+        tws_i = Twiss()
 
     if bounds is not None:
         tau = p_array.tau()
