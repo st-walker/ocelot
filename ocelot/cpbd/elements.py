@@ -39,6 +39,9 @@ class Element(object):
         except:
             return False
 
+    def __repr__(self):
+        return f"<{type(self).__name__}: {self.id}>"
+
 
 # to mark locations of bpms and other diagnostics
 class Monitor(Element):
