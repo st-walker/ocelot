@@ -1,10 +1,10 @@
 __author__ = 'Sergey'
 
-
 from numpy.linalg import inv
+import numpy as np
 
 from ocelot.cpbd.transformations.transfer_map import TransferMap
-from ocelot.cpbd.beam import Twiss, twiss_iterable_to_df
+from ocelot.cpbd.beam import Twiss, twiss_iterable_to_df, Particle
 
 from ocelot.cpbd.r_matrix import *
 from ocelot.cpbd.tm_utils import SecondOrderMult
@@ -122,7 +122,7 @@ def trace_z(lattice, obj0, z_array):
     return obj_list
 
 
-def trace_obj(lattice, obj, nPoints=None, attach2elem=False):
+def trace_obj(lattice, obj: Twiss | Particle, nPoints: int | None = None, attach2elem: bool = False) -> list[Twiss] | list[Particle]:
     """
     track object through the lattice
     obj must be Twiss or Particle
@@ -133,9 +133,13 @@ def trace_obj(lattice, obj, nPoints=None, attach2elem=False):
         for e in lattice.sequence:
             for tm in e.first_order_tms:
                 obj = tm * obj
-                obj.id = e.id
-                obj_list.append(obj)
+
+            obj.id = e.id
+            obj_list.append(obj)
+
             if attach2elem:
+                if hasattr(e, "tws"):
+                    raise RuntimeError("Duplicate elements used with attach2elem")
                 e.tws = obj
     else:
         z_array = np.linspace(0, lattice.totalLen, nPoints, endpoint=True)
